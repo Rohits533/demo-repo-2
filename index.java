@@ -123,3 +123,60 @@ public final class OrderProcessorEngine implements AutoCloseable {
         }
     }
 }
+package com.example.order;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+
+/**
+ * Domain model representing an order item.
+ * Uses a Java Record for immutability and concise boilerplate.
+ */
+record OrderItem(String sku, String productName, int quantity, BigDecimal unitPrice) {
+    public OrderItem {
+        Objects.requireNonNull(sku, "SKU must not be null");
+        Objects.requireNonNull(unitPrice, "Unit price must not be null");
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero");
+        }
+    }
+
+    public BigDecimal getTotalPrice() {
+        return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+}
+
+/**
+ * Service class handling order calculation logic.
+ */
+public class OrderService {
+
+    /**
+     * Calculates the total price for a collection of order items.
+     *
+     * @.param items the list of order items
+     * @return the total aggregate price
+     */
+    public BigDecimal calculateOrderTotal(List<OrderItem> items) {
+        return Optional.ofNullable(items)
+                .orElse(List.of())
+                .stream()
+                .filter(Objects::nonNull)
+                .map(OrderItem::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public static void main(String[] args) {
+        OrderService orderService = new OrderService();
+
+        List<OrderItem> sampleOrder = List.of(
+                new OrderItem("SKU-1001", "Developer Laptop", 1, new BigDecimal("1299.99")),
+                new OrderItem("SKU-1002", "Wireless Mouse", 2, new BigDecimal("49.50"))
+        );
+
+        BigDecimal total = orderService.calculateOrderTotal(sampleOrder);
+        System.out.printf("Total Order Amount: $%s%n", total);
+    }
+}
